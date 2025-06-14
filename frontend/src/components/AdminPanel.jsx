@@ -29,7 +29,7 @@ function AdminPanel() {
       try {
         setIsLoading(true);
         const response = await axios.get(
-          `http://localhost:2400/api/admin/appointments?status=${filter === 'all' ? '' : filter}`
+          `https://mern-server-ten.vercel.app/api/admin/appointments?status=${filter === 'all' ? '' : filter}`
         );
         setAppointments(response.data.appointments);
       } catch (error) {
@@ -42,7 +42,7 @@ function AdminPanel() {
 
     fetchAppointments();
 
-    const eventSource = new EventSource('http://localhost:2400/api/admin/updates');
+    const eventSource = new EventSource('https://mern-server-ten.vercel.app/api/admin/updates');
     
     eventSource.onopen = () => {
       console.log('SSE connection established');
@@ -90,7 +90,7 @@ function AdminPanel() {
     try {
       setIsLoading(true);
       const response = await axios.patch(
-        `http://localhost:2400/api/admin/appointments/${id}`,
+        `https://mern-server-ten.vercel.app/api/admin/appointments/${id}`,
         { status: 'Confirmed' }
       );
       
@@ -112,7 +112,7 @@ function AdminPanel() {
 
     try {
       setIsLoading(true);
-      await axios.delete(`http://localhost:2400/api/admin/appointments/${id}`);
+      await axios.delete(`https://mern-server-ten.vercel.app/api/admin/appointments/${id}`);
       setAppointments(prev => prev.filter(app => app.id !== id));
     } catch (error) {
       console.error('Cancellation error:', error);
