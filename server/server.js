@@ -47,19 +47,21 @@ app.use(bodyParser.json());
 
 let adminConnections = [];
 
-// Appointment Schema
-const appointmentSchema = new mongoose.Schema({
-  id: { type: String, unique: true },
-  name: { type: String, required: true },
-  address: String,
-  phone: { type: String, required: true },
-  email: String,
-  service: { type: String, default: 'Haircut' },
-  status: { type: String, default: 'Pending' },
-  isConfirmed: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  lastUpdated: { type: Date, default: Date.now }
+// API Welcome Route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: "Barber Shop API is running",
+    availableEndpoints: {
+      createAppointment: "POST /api/appointments",
+      getAppointments: "GET /api/admin/appointments",
+      updateStatus: "PATCH /api/admin/appointments/:id",
+      deleteAppointment: "DELETE /api/admin/appointments/:id",
+      realtimeUpdates: "GET /api/admin/updates",
+      healthCheck: "GET /health"
+    }
+  });
 });
+
 
 
 // API Endpoints
