@@ -47,6 +47,21 @@ app.use(bodyParser.json());
 
 let adminConnections = [];
 
+// Appointment Schema
+const appointmentSchema = new mongoose.Schema({
+  id: { type: String, unique: true },
+  name: { type: String, required: true },
+  address: String,
+  phone: { type: String, required: true },
+  email: String,
+  service: { type: String, default: 'Haircut' },
+  status: { type: String, default: 'Pending' },
+  isConfirmed: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  lastUpdated: { type: Date, default: Date.now }
+});
+
+
 // API Endpoints
 app.post('/api/appointments', async (req, res) => {
   try {
