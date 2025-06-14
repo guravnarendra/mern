@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const app = express();
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://onlyfornarendra1:3Z9ip67UZuNSn2LN@cluster0.5nhqf.mongodb.net/barbershopbarbershop', {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -19,6 +19,12 @@ db.once('open', () => {
   Appointment.createIndexes()
     .then(() => console.log('Indexes created'))
     .catch(err => console.error('Index creation error:', err));
+});
+
+// Reconnect if MongoDB disconnects
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected - reconnecting...');
+  setTimeout(() => mongoose.connect(process.env.MONGODB_URI), 5000);
 });
 
 // Appointment Schema
@@ -39,7 +45,7 @@ const Appointment = mongoose.model('Appointment', appointmentSchema);
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://mern-azv5.vercel.app',
+  origin: process.env.FRONTEND_URL,
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   credentials: true
 }));
@@ -62,9 +68,7 @@ app.get('/', (req, res) => {
   });
 });
 
-
-
-// API Endpoints
+// Create Appointment
 app.post('/api/appointments', async (req, res) => {
   try {
     const { name, phone, email, service, address } = req.body;
@@ -95,7 +99,7 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 
-// Update appointment status
+// Update Appointment Status
 app.patch('/api/admin/appointments/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -127,7 +131,7 @@ app.patch('/api/admin/appointments/:id', async (req, res) => {
   }
 });
 
-// Cancel and delete appointment
+// Cancel and Delete Appointment
 app.delete('/api/admin/appointments/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -145,7 +149,7 @@ app.delete('/api/admin/appointments/:id', async (req, res) => {
   }
 });
 
-// Get all appointments
+// Get All Appointments
 app.get('/api/admin/appointments', async (req, res) => {
   try {
     const { status } = req.query;
@@ -163,41 +167,70 @@ app.get('/api/admin/appointments', async (req, res) => {
   }
 });
 
-// SSE endpoint
-app.get('/api/admin/updates', (req, res) => {
+// SSE Endpoint (Vercel-optimized)
+app.get('/api/admin/updates', async (req, res) => {
+  // Vercel-specific headers
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
+  // Immediate heartbeat
+  res.write('retry: 5000\n\n');
+  
   const clientId = Date.now();
-  const newConnection = {
-    id: clientId,
-    res
+  const sendEvent = (type, data) => {
+    try {
+      res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+    } catch (e) {
+      console.log('Client disconnected');
+    }
   };
 
-  adminConnections.push(newConnection);
-  res.write('data: Connected\n\n');
+  // Add to connections list
+  adminConnections.push({ id: clientId, sendEvent });
+  
+  // Send initial state
+  try {
+    const appointments = await Appointment.find().sort({ createdAt: -1 });
+    sendEvent('init', { appointments });
+  } catch (error) {
+    console.error('Error sending initial state:', error);
+  }
+
+  // Heartbeat every 15 seconds
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(':heartbeat\n\n');
+    } catch (e) {
+      clearInterval(heartbeat);
+    }
+  }, 15000);
 
   req.on('close', () => {
+    clearInterval(heartbeat);
     adminConnections = adminConnections.filter(conn => conn.id !== clientId);
+    console.log(`Client ${clientId} disconnected`);
   });
 });
 
-// Health check endpoint
+// Health Check
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date(),
-    dbStatus: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
+    dbStatus: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    uptime: process.uptime(),
+    connectedClients: adminConnections.length
   });
 });
 
+// Helper function to notify all admin panels
 function notifyAdmins(data) {
-  const message = `data: ${JSON.stringify(data)}\n\n`;
   adminConnections.forEach(connection => {
     try {
-      connection.res.write(message);
+      connection.sendEvent(data.type, data);
     } catch (e) {
       console.log('Client disconnected');
     }
