@@ -10,7 +10,7 @@ function AdminPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const audioRef = useRef(null);
-  const API_URL = process.env.REACT_APP_API_URL || 'https://mern-server-ten.vercel.app';
+  const API_URL = process.env.REACT_APP_API_URL || 'https://mern-pxsj.onrender.com';
 
   // Initialize audio
   useEffect(() => {
