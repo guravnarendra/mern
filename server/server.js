@@ -39,7 +39,7 @@ const Appointment = mongoose.model('Appointment', appointmentSchema);
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'https://mern-azv5.vercel.app',
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   credentials: true
 }));
