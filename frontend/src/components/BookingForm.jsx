@@ -22,7 +22,7 @@ function BookingForm() {
     setStatus({ type: 'loading', message: 'Processing...' });
     
     try {
-      const response = await axios.post('https://mern-server-ten.vercel.app/api/appointments', formData);
+      const response = await axios.post('https://mern-pxsj.onrender.com/api/appointments', formData);
       
       if (response.data.success) {
         setStatus({ 
